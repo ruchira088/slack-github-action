@@ -1,0 +1,11 @@
+{
+  "name": "slack-github-action",
+  "version": "0.0.1",
+  "description": "Post Slack messages from a GitHub Action",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC"
+}
