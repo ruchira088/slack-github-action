@@ -1,0 +1,10 @@
+name: 'GitHub Slack notifications'
+description: 'Sends Slack notifications about the results of GitHub Actions'
+inputs:
+  aws-role-arn:
+    description: 'AWS role to be assumed by the action'
+    required: false
+    default: '<replace me>'
+runs:
+  using: node20
+  main: 'dist/index.js'

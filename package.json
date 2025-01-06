@@ -1,11 +1,22 @@
 {
   "name": "slack-github-action",
   "version": "0.0.1",
-  "description": "Post Slack messages from a GitHub Action",
-  "main": "index.js",
+  "description": "Sends Slack notifications about the results of GitHub Actions workflows",
+  "main": "dist/index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start": "npm run build && node .",
+    "build": "ncc build index.ts"
   },
-  "author": "",
-  "license": "ISC"
+  "author": "Ruchira (Richie) Jayasekara <me@ruchij.com>",
+  "license": "ISC",
+  "dependencies": {
+    "@actions/core": "^1.11.1",
+    "@actions/github": "^6.0.0",
+    "@aws-sdk/client-s3": "^3.705.0",
+    "@aws-sdk/client-sts": "^3.699.0"
+  },
+  "devDependencies": {
+    "@vercel/ncc": "^0.38.3",
+    "typescript": "^5.7.2"
+  }
 }
