@@ -31,3 +31,6 @@ jobs:
 
       - name: Check commited build file
         run: diff dist/index.js output/index.js
+
+      - name: Run GitHub Action
+        run: ruchira088/slack-github-action@${{ github.sha }}
