@@ -33,4 +33,4 @@ jobs:
         run: diff dist/index.js output/index.js
 
       - name: Run GitHub Action
-        uses: ruchira088/slack-github-action@${{ github.sha }}
+        uses: ruchira088/slack-github-action@main
