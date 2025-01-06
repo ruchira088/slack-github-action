@@ -34,6 +34,7 @@ jobs:
 
   send-notification:
     runs-on: ubuntu-latest
+    if: ${{ github.ref == 'refs/heads/main' && always() }}
 
     permissions:
       id-token: write
@@ -43,5 +44,5 @@ jobs:
 
     steps:
       - name: Run GitHub Action
-        if: ${{ github.ref == 'refs/heads/main' && always() }}
+
         uses: ruchira088/slack-github-action@main
