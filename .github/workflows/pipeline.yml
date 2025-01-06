@@ -13,10 +13,6 @@ jobs:
   check-code:
     runs-on: ubuntu-latest
 
-    permissions:
-      contents: read
-      id-token: write
-
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -36,6 +32,16 @@ jobs:
       - name: Check commited build file
         run: diff dist/index.js output/index.js
 
+  send-notification:
+    runs-on: ubuntu-latest
+
+    permissions:
+      id-token: write
+
+    needs:
+      - check-code
+
+    steps:
       - name: Run GitHub Action
         if: ${{ github.ref == 'refs/heads/main' && always() }}
         uses: ruchira088/slack-github-action@main
