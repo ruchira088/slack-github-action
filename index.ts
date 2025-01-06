@@ -111,5 +111,5 @@ async function runLocal() {
 }
 
 runGitHubAction()
-// runLocal()
+runLocal()
 
