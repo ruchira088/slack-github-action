@@ -62444,8 +62444,8 @@ function run(ssmClient, githubWorkflowRun) {
         const response = yield octokit.rest.actions.getWorkflowRun({
             owner: githubWorkflowRun.owner, repo: githubWorkflowRun.repo, run_id: githubWorkflowRun.runId,
         });
-        const { status, conclusion } = response.data;
-        console.log({ status, conclusion });
+        // const {status, conclusion} = response.data
+        console.log(JSON.stringify(response, null, 2));
     });
 }
 function runGitHubAction() {
@@ -62480,7 +62480,7 @@ function runLocal() {
     });
 }
 runGitHubAction();
-// runLocal()
+runLocal();
 
 
 /***/ }),

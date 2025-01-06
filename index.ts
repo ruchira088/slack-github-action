@@ -72,7 +72,7 @@ async function run(ssmClient: SSMClient, githubWorkflowRun: GithubWorkflowRun): 
 
   const {status, conclusion} = response.data
 
-  console.log({status, conclusion})
+  console.log(JSON.stringify(response, null, 2))
 }
 
 async function runGitHubAction() {
