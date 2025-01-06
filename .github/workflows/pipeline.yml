@@ -13,6 +13,10 @@ jobs:
   check-code:
     runs-on: ubuntu-latest
 
+    permissions:
+      contents: read
+      id-token: write
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -35,5 +39,3 @@ jobs:
       - name: Run GitHub Action
         if: ${{ github.ref == 'refs/heads/main' && always() }}
         uses: ruchira088/slack-github-action@main
-        permissions:
-          id-token: write
