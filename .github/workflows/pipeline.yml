@@ -33,5 +33,5 @@ jobs:
         run: diff dist/index.js output/index.js
 
       - name: Run GitHub Action
-        if: github.ref == 'refs/heads/main'
+        if: ${{ github.ref == 'refs/heads/main' && always() }}
         uses: ruchira088/slack-github-action@main

@@ -4,7 +4,10 @@ inputs:
   aws-role-arn:
     description: 'AWS role to be assumed by the action'
     required: false
-    default: '<replace me>'
+    default: 'arn:aws:iam::365562660444:role/github_iam_role'
+  aws-region:
+    required: false
+    default: 'ap-southeast-2'
 runs:
   using: node20
   main: 'dist/index.js'
