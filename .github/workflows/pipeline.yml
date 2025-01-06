@@ -35,3 +35,5 @@ jobs:
       - name: Run GitHub Action
         if: ${{ github.ref == 'refs/heads/main' && always() }}
         uses: ruchira088/slack-github-action@main
+        permissions:
+          id-token: write
