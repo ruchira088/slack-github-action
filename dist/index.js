@@ -62398,6 +62398,7 @@ const github = __importStar(__nccwpck_require__(3228));
 const client_sts_1 = __nccwpck_require__(1695);
 const client_ssm_1 = __nccwpck_require__(4736);
 const REPOSITORY_OWNER = "ruchira088";
+const FAILED_GITHUB_CONCLUSIONS = ["failure", "timed_out"];
 function loginToAws(roleArn, region, sessionName) {
     return __awaiter(this, void 0, void 0, function* () {
         const idToken = yield core.getIDToken("sts.amazonaws.com");
@@ -62438,14 +62439,31 @@ function getParameter(ssmClient, parameterName) {
 }
 function run(ssmClient, githubWorkflowRun) {
     return __awaiter(this, void 0, void 0, function* () {
+        var _a, _b;
         const slackBotToken = yield getParameter(ssmClient, "/github/slack/bot-token");
         const githubToken = yield getParameter(ssmClient, "/github/slack-github-action/read");
         const octokit = github.getOctokit(githubToken);
-        const response = yield octokit.rest.actions.getWorkflowRun({
+        const workflowRunParameters = {
             owner: githubWorkflowRun.owner, repo: githubWorkflowRun.repo, run_id: githubWorkflowRun.runId,
-        });
-        const { status, conclusion } = response.data;
-        console.log(JSON.stringify(response, null, 2));
+        };
+        const jobsForWorkflowRun = yield octokit.rest.actions.listJobsForWorkflowRun(workflowRunParameters);
+        const failedJob = jobsForWorkflowRun.data.jobs
+            .find(job => job.conclusion != null && FAILED_GITHUB_CONCLUSIONS.includes(job.conclusion));
+        const workflowRunDetails = yield octokit.rest.actions.getWorkflowRun(workflowRunParameters);
+        const repositoryName = workflowRunDetails.data.repository.name;
+        const branch = workflowRunDetails.data.head_branch;
+        const commitMessage = workflowRunDetails.data.display_title;
+        const sha = workflowRunDetails.data.head_sha;
+        if (failedJob != null) {
+            const workflowName = failedJob.workflow_name;
+            const failedStepName = (_b = (_a = failedJob.steps) === null || _a === void 0 ? void 0 : _a.find(step => step.conclusion != null && FAILED_GITHUB_CONCLUSIONS.includes(step.conclusion))) === null || _b === void 0 ? void 0 : _b.name;
+            const htmlUrl = failedJob.html_url;
+            console.log({ workflowName, failedStepName, htmlUrl });
+        }
+        else {
+            const htmlUrl = workflowRunDetails.data.repository.html_url;
+            console.log({ htmlUrl });
+        }
     });
 }
 function runGitHubAction() {
