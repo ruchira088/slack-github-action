@@ -30,4 +30,5 @@ async function runGitHubWorkflow() {
   await runNotificationWorkflow(ssmClient, githubWorkflowRun, slackChannel)
 }
 
+console.log("Failure")
 runGitHubWorkflow()
