@@ -46,5 +46,5 @@ jobs:
       - check-code
 
     steps:
-      - name: Run GitHub Action
+      - name: Send Slack notification
         uses: ruchira088/slack-github-action@v1
