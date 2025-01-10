@@ -1,10 +1,10 @@
-export type GithubWorkflowRun = {
+export interface GithubWorkflowRun {
   readonly owner: string
   readonly repo: string
   readonly runId: number
 }
 
-export type CommitDetails = {
+export interface CommitDetails {
   readonly repository: string
   readonly branch: string
   readonly commitMessage: string

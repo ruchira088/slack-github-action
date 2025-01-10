@@ -80,7 +80,7 @@ export class SlackClient {
   }
 
   async getChannelId(channelName: string, cursor?: string): Promise<string | undefined> {
-    const queryParams: { [key: string]: string | number | undefined } = {cursor}
+    const queryParams: Record<string, string | number | undefined> = {cursor}
 
     const queryString =
       Object.keys(queryParams)
