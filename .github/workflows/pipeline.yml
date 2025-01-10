@@ -34,7 +34,7 @@ jobs:
 
   send-notification:
     runs-on: ubuntu-latest
-    if: ${{ github.ref == 'refs/heads/main' && always() }}
+    if: always()
 
     permissions:
       id-token: write
