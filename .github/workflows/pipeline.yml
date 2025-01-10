@@ -27,7 +27,7 @@ jobs:
         run: npm ci
 
       - name: Build code
-        run: ./node_modules/.bin/ncc build index.ts -o output
+        run: ./node_modules/.bin/ncc build src/index.ts -o output
 
       - name: Check commited build file
         run: diff dist/index.js output/index.js

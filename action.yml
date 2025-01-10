@@ -8,6 +8,9 @@ inputs:
   aws-region:
     required: false
     default: 'ap-southeast-2'
+  slack-channel:
+    required: false
+    default: 'github-actions'
 runs:
   using: node20
   main: 'dist/index.js'

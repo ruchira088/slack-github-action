@@ -5,7 +5,7 @@
   "main": "dist/index.js",
   "scripts": {
     "start": "npm run build && node .",
-    "build": "ncc build index.ts"
+    "build": "ncc build src/index.ts"
   },
   "author": "Ruchira (Richie) Jayasekara <me@ruchij.com>",
   "license": "ISC",
@@ -13,7 +13,8 @@
     "@actions/core": "^1.11.1",
     "@actions/github": "^6.0.0",
     "@aws-sdk/client-ssm": "^3.721.0",
-    "@aws-sdk/client-sts": "^3.699.0"
+    "@aws-sdk/client-sts": "^3.699.0",
+    "axios": "^1.7.9"
   },
   "devDependencies": {
     "@vercel/ncc": "^0.38.3",
