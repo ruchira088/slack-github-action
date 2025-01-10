@@ -26,8 +26,9 @@ export class SlackClient {
 *Message*:\t\t   ${failedWorkflowRunDetails.commitMessage}
 *Commit SHA*:   \`${failedWorkflowRunDetails.commitSha}\`
 *Workflow*:\t\t ${failedWorkflowRunDetails.workflowName}
-*Failed Step*:\t   ${failedWorkflowRunDetails.failedStep}
 *Result*:\t\t\t    FAILED :x:
+*Failed Job*:\t\t ${failedWorkflowRunDetails.failedJob}
+*Failed Step*:\t   ${failedWorkflowRunDetails.failedStep}
 <${failedWorkflowRunDetails.failedStepUrl}|Failed Step URL>`
         }
       }

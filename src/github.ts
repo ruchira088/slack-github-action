@@ -2,7 +2,7 @@ import {SSMClient} from "@aws-sdk/client-ssm"
 import {getParameter} from "./aws"
 import * as github from "@actions/github"
 import {createSlackClient} from "./slack"
-import {CommitDetails, GithubWorkflowRun} from "./types"
+import {FailedWorkflowRunDetails, GithubWorkflowRun, WorkflowRunDetails} from "./types"
 
 export const REPOSITORY_OWNER = "ruchira088"
 
@@ -27,17 +27,16 @@ export async function runNotificationWorkflow(
     jobsForWorkflowRun.data.jobs
       .find(job => job.conclusion != null && FAILED_GITHUB_CONCLUSIONS.includes(job.conclusion))
 
-  const workflowRunDetails = await octokit.rest.actions.getWorkflowRun(workflowRunParameters)
+  const workflowRun = await octokit.rest.actions.getWorkflowRun(workflowRunParameters)
 
-  const commitDetails: CommitDetails = {
-    repository: workflowRunDetails.data.repository.full_name,
-    branch: workflowRunDetails.data.head_branch as string,
-    commitMessage: workflowRunDetails.data.display_title,
-    commitSha: workflowRunDetails.data.head_sha
+  const workflowRunDetails: WorkflowRunDetails = {
+    repository: workflowRun.data.repository.full_name,
+    branch: workflowRun.data.head_branch as string,
+    commitMessage: workflowRun.data.display_title,
+    commitSha: workflowRun.data.head_sha,
+    workflowName: workflowRun.data.name as string,
+    url: workflowRun.data.html_url
   }
-
-  const workflowName: string = workflowRunDetails.data.name as string
-  const url = workflowRunDetails.data.html_url
 
   const slackClient = await createSlackClient(ssmClient)
 
@@ -45,10 +44,14 @@ export async function runNotificationWorkflow(
     const failedStep: string =
       failedJob.steps?.find(step => step.conclusion != null && FAILED_GITHUB_CONCLUSIONS.includes(step.conclusion))?.name as string
 
-    const failedStepUrl = failedJob.html_url as string
-
-    await slackClient.sendFailureMessage(slackChannel, {...commitDetails, workflowName, url, failedStep, failedStepUrl})
+    const failedWorkflowRunDetails: FailedWorkflowRunDetails = {
+      ...workflowRunDetails,
+      failedJob: failedJob.name,
+      failedStep: failedStep,
+      failedStepUrl: failedJob.html_url as string
+    }
+    await slackClient.sendFailureMessage(slackChannel, failedWorkflowRunDetails)
   } else {
-    await slackClient.sendSuccessMessage(slackChannel, {...commitDetails, workflowName, url})
+    await slackClient.sendSuccessMessage(slackChannel, workflowRunDetails)
   }
 }

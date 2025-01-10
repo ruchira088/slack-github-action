@@ -66032,23 +66032,23 @@ function runNotificationWorkflow(ssmClient, githubWorkflowRun, slackChannel) {
         const jobsForWorkflowRun = yield octokit.rest.actions.listJobsForWorkflowRun(workflowRunParameters);
         const failedJob = jobsForWorkflowRun.data.jobs
             .find(job => job.conclusion != null && FAILED_GITHUB_CONCLUSIONS.includes(job.conclusion));
-        const workflowRunDetails = yield octokit.rest.actions.getWorkflowRun(workflowRunParameters);
-        const commitDetails = {
-            repository: workflowRunDetails.data.repository.full_name,
-            branch: workflowRunDetails.data.head_branch,
-            commitMessage: workflowRunDetails.data.display_title,
-            commitSha: workflowRunDetails.data.head_sha
+        const workflowRun = yield octokit.rest.actions.getWorkflowRun(workflowRunParameters);
+        const workflowRunDetails = {
+            repository: workflowRun.data.repository.full_name,
+            branch: workflowRun.data.head_branch,
+            commitMessage: workflowRun.data.display_title,
+            commitSha: workflowRun.data.head_sha,
+            workflowName: workflowRun.data.name,
+            url: workflowRun.data.html_url
         };
-        const workflowName = workflowRunDetails.data.name;
-        const url = workflowRunDetails.data.html_url;
         const slackClient = yield (0, slack_1.createSlackClient)(ssmClient);
         if (failedJob != null) {
             const failedStep = (_b = (_a = failedJob.steps) === null || _a === void 0 ? void 0 : _a.find(step => step.conclusion != null && FAILED_GITHUB_CONCLUSIONS.includes(step.conclusion))) === null || _b === void 0 ? void 0 : _b.name;
-            const failedStepUrl = failedJob.html_url;
-            yield slackClient.sendFailureMessage(slackChannel, Object.assign(Object.assign({}, commitDetails), { workflowName, url, failedStep, failedStepUrl }));
+            const failedWorkflowRunDetails = Object.assign(Object.assign({}, workflowRunDetails), { failedJob: failedJob.name, failedStep: failedStep, failedStepUrl: failedJob.html_url });
+            yield slackClient.sendFailureMessage(slackChannel, failedWorkflowRunDetails);
         }
         else {
-            yield slackClient.sendSuccessMessage(slackChannel, Object.assign(Object.assign({}, commitDetails), { workflowName, url }));
+            yield slackClient.sendSuccessMessage(slackChannel, workflowRunDetails);
         }
     });
 }
@@ -66197,8 +66197,9 @@ class SlackClient {
 *Message*:\t\t   ${failedWorkflowRunDetails.commitMessage}
 *Commit SHA*:   \`${failedWorkflowRunDetails.commitSha}\`
 *Workflow*:\t\t ${failedWorkflowRunDetails.workflowName}
-*Failed Step*:\t   ${failedWorkflowRunDetails.failedStep}
 *Result*:\t\t\t    FAILED :x:
+*Failed Job*:\t\t ${failedWorkflowRunDetails.failedJob}
+*Failed Step*:\t   ${failedWorkflowRunDetails.failedStep}
 <${failedWorkflowRunDetails.failedStepUrl}|Failed Step URL>`
                     }
                 }

@@ -11,7 +11,7 @@ export interface CommitDetails {
   readonly commitSha: string
 }
 
-type WorkflowRunDetails = CommitDetails & {
+export type WorkflowRunDetails = CommitDetails & {
   readonly workflowName: string
   readonly url: string
 }
@@ -19,6 +19,7 @@ type WorkflowRunDetails = CommitDetails & {
 export type SuccessfulWorkflowRunDetails = WorkflowRunDetails
 
 export type FailedWorkflowRunDetails = WorkflowRunDetails & {
+  readonly failedJob: string
   readonly failedStep: string
   readonly failedStepUrl: string
 }

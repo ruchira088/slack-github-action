@@ -5,12 +5,12 @@ import {GithubWorkflowRun} from "./types"
 async function runLocalWorkflow(success: boolean) {
   const ssmClient = new SSMClient({region: "ap-southeast-2"})
 
-  const runId = success ? 12629662712 : 12629623430
+  const runId = success ? 12501327589 : 12708277315
 
   const githubWorkflowRun: GithubWorkflowRun = {
     runId,
     owner: "ruchira088",
-    repo: "slack-github-action"
+    repo: "dynamic-dns"
   }
 
   await runNotificationWorkflow(ssmClient, githubWorkflowRun, "github-actions")
