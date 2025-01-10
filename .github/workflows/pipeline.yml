@@ -47,4 +47,4 @@ jobs:
 
     steps:
       - name: Run GitHub Action
-        uses: ruchira088/slack-github-action@main
+        uses: ruchira088/slack-github-action@v1
