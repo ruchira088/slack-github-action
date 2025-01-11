@@ -66135,7 +66135,7 @@ function runGitHubWorkflow() {
         const awsRoleArn = core.getInput("aws-role-arn");
         const awsRegion = core.getInput("aws-region");
         const slackChannel = core.getInput("slack-channel");
-        if (((_b = (_a = github.context.payload.repository) === null || _a === void 0 ? void 0 : _a.owner) === null || _b === void 0 ? void 0 : _b.name) != github_1.REPOSITORY_OWNER) {
+        if (!((_b = (_a = github.context.payload.repository) === null || _a === void 0 ? void 0 : _a.full_name) === null || _b === void 0 ? void 0 : _b.startsWith(github_1.REPOSITORY_OWNER))) {
             throw new Error(`Only repositories owned by ${github_1.REPOSITORY_OWNER} can use this GitHub Action.
 Payload: ${JSON.stringify(github.context.payload, null, 2)}`);
         }
