@@ -11,7 +11,7 @@ async function runGitHubWorkflow() {
   const awsRegion: string = core.getInput("aws-region")
   const slackChannel: string = core.getInput("slack-channel")
 
-  if (github.context.payload.repository?.owner?.name != REPOSITORY_OWNER) {
+  if (!github.context.payload.repository?.full_name?.startsWith(REPOSITORY_OWNER)) {
     throw new Error(
       `Only repositories owned by ${REPOSITORY_OWNER} can use this GitHub Action.
 Payload: ${JSON.stringify(github.context.payload, null, 2)}`
