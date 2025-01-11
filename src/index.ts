@@ -12,7 +12,10 @@ async function runGitHubWorkflow() {
   const slackChannel: string = core.getInput("slack-channel")
 
   if (github.context.payload.repository?.owner?.name != REPOSITORY_OWNER) {
-    throw new Error(`Only repositories owned by ${REPOSITORY_OWNER} can use this GitHub Action.`)
+    throw new Error(
+      `Only repositories owned by ${REPOSITORY_OWNER} can use this GitHub Action.
+Payload: ${JSON.stringify(github.context.payload, null, 2)}`
+    )
   }
 
   const awsSessionName: string | undefined = map(github.context.payload.repository?.name, name => `${name}-oidc`)

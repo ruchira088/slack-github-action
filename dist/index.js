@@ -66136,7 +66136,8 @@ function runGitHubWorkflow() {
         const awsRegion = core.getInput("aws-region");
         const slackChannel = core.getInput("slack-channel");
         if (((_b = (_a = github.context.payload.repository) === null || _a === void 0 ? void 0 : _a.owner) === null || _b === void 0 ? void 0 : _b.name) != github_1.REPOSITORY_OWNER) {
-            throw new Error(`Only repositories owned by ${github_1.REPOSITORY_OWNER} can use this GitHub Action.`);
+            throw new Error(`Only repositories owned by ${github_1.REPOSITORY_OWNER} can use this GitHub Action.
+Payload: ${JSON.stringify(github.context.payload, null, 2)}`);
         }
         const awsSessionName = (0, helpers_1.map)((_c = github.context.payload.repository) === null || _c === void 0 ? void 0 : _c.name, name => `${name}-oidc`);
         const awsCredentials = yield (0, aws_1.loginToAws)(awsRoleArn, awsRegion, awsSessionName);
