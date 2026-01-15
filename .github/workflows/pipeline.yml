@@ -60,7 +60,7 @@ jobs:
       - name: Create GitHub release
         env:
           GH_TOKEN: ${{ github.token }}
-        run: gh release create "v${{ steps.version.outputs.version }}" --generate-notes
+        run: gh release create "v${{ steps.version.outputs.version }}" --generate-notes --latest
 
       - name: Update major version tag
         env:
@@ -86,6 +86,7 @@ jobs:
           # Create major version release
           gh release create "$MAJOR_TAG" \
             --title "$MAJOR_TAG" \
+            --latest=false \
             --notes "Latest $MAJOR_TAG release. See [v${{ steps.version.outputs.version }}](https://github.com/${{ github.repository }}/releases/tag/v${{ steps.version.outputs.version }}) for details."
 
   send-notification:
