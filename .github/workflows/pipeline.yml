@@ -15,12 +15,12 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Setup nodeJS
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
-          node-version: 20
+          node-version: 24
           cache: 'npm'
 
       - name: Install dependencies
@@ -32,8 +32,61 @@ jobs:
       - name: Build code
         run: ./node_modules/.bin/ncc build src/index.ts -o output
 
-      - name: Check commited build file
-        run: diff dist/index.js output/index.js
+      - name: Check committed build files
+        run: diff -r dist output
+
+  release:
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+
+    permissions:
+      contents: write
+
+    needs:
+      - check-code
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Get version from package.json
+        id: version
+        run: |
+          VERSION=$(jq -r '.version' package.json)
+          MAJOR_VERSION=$(echo "$VERSION" | cut -d. -f1)
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "major_version=$MAJOR_VERSION" >> "$GITHUB_OUTPUT"
+
+      - name: Create GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release create "v${{ steps.version.outputs.version }}" --generate-notes --fail-on-error
+
+      - name: Update major version tag
+        env:
+          GH_TOKEN: ${{ github.token }}
+          MAJOR_TAG: v${{ steps.version.outputs.major_version }}
+        run: |
+          # Delete existing major version tag (local and remote)
+          git tag -d "$MAJOR_TAG" 2>/dev/null || true
+          git push origin --delete "$MAJOR_TAG" 2>/dev/null || true
+
+          # Create new major version tag pointing to current commit
+          git tag "$MAJOR_TAG"
+          git push origin "$MAJOR_TAG"
+
+      - name: Update major version release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          MAJOR_TAG: v${{ steps.version.outputs.major_version }}
+        run: |
+          # Delete existing major version release if it exists
+          gh release delete "$MAJOR_TAG" --yes 2>/dev/null || true
+
+          # Create major version release
+          gh release create "$MAJOR_TAG" \
+            --title "$MAJOR_TAG" \
+            --notes "Latest $MAJOR_TAG release. See [v${{ steps.version.outputs.version }}](https://github.com/${{ github.repository }}/releases/tag/v${{ steps.version.outputs.version }}) for details."
 
   send-notification:
     runs-on: ubuntu-latest
@@ -44,6 +97,7 @@ jobs:
 
     needs:
       - check-code
+      - release
 
     steps:
       - name: Send Slack notification

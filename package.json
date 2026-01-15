@@ -1,6 +1,6 @@
 {
   "name": "slack-github-action",
-  "version": "0.0.1",
+  "version": "1.0.3",
   "description": "Sends Slack notifications about the results of GitHub Actions workflows",
   "main": "dist/index.js",
   "scripts": {
@@ -10,17 +10,17 @@
   "author": "Ruchira (Richie) Jayasekara <me@ruchij.com>",
   "license": "ISC",
   "dependencies": {
-    "@actions/core": "^1.11.1",
-    "@actions/github": "^6.0.0",
-    "@aws-sdk/client-ssm": "^3.721.0",
-    "@aws-sdk/client-sts": "^3.699.0",
-    "axios": "^1.7.9"
+    "@actions/core": "^2.0.2",
+    "@actions/github": "^7.0.0",
+    "@aws-sdk/client-ssm": "^3.970.0",
+    "@aws-sdk/client-sts": "^3.970.0",
+    "axios": "^1.13.2"
   },
   "devDependencies": {
-    "@eslint/js": "^9.17.0",
-    "@vercel/ncc": "^0.38.3",
-    "eslint": "^9.17.0",
-    "typescript": "^5.7.3",
-    "typescript-eslint": "^8.19.1"
+    "@eslint/js": "^9.39.2",
+    "@vercel/ncc": "^0.38.4",
+    "eslint": "^9.39.2",
+    "typescript": "^5.9.3",
+    "typescript-eslint": "^8.53.0"
   }
 }
