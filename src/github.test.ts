@@ -2,12 +2,16 @@ import { SSMClient } from '@aws-sdk/client-ssm'
 import * as github from '@actions/github'
 import { runNotificationWorkflow, REPOSITORY_OWNER } from './github'
 import { GithubWorkflowRun } from './types'
+import * as awsModule from './aws'
+import * as slackModule from './slack'
 
 jest.mock('./aws')
 jest.mock('./slack')
 jest.mock('@actions/github')
 
 const mockedGithub = github as jest.Mocked<typeof github>
+const mockedAws = awsModule as jest.Mocked<typeof awsModule>
+const mockedSlack = slackModule as jest.Mocked<typeof slackModule>
 
 describe('github', () => {
   describe('REPOSITORY_OWNER', () => {
@@ -55,12 +59,8 @@ describe('github', () => {
       }
 
       mockedGithub.getOctokit = jest.fn().mockReturnValue(mockOctokit)
-
-      const { getParameter } = require('./aws')
-      getParameter.mockResolvedValue('github-token')
-
-      const { createSlackClient } = require('./slack')
-      createSlackClient.mockResolvedValue(mockSlackClient)
+      mockedAws.getParameter.mockResolvedValue('github-token')
+      mockedSlack.createSlackClient.mockResolvedValue(mockSlackClient as unknown as slackModule.SlackClient)
     })
 
     it('should send success message when all jobs pass', async () => {
@@ -214,8 +214,6 @@ describe('github', () => {
     })
 
     it('should fetch GitHub token from SSM', async () => {
-      const { getParameter } = require('./aws')
-
       mockOctokit.rest.actions.listJobsForWorkflowRun.mockResolvedValue({
         data: { jobs: [] }
       })
@@ -233,7 +231,7 @@ describe('github', () => {
 
       await runNotificationWorkflow(mockSsmClient, mockWorkflowRun, 'alerts')
 
-      expect(getParameter).toHaveBeenCalledWith(mockSsmClient, '/github/slack-github-action/read')
+      expect(mockedAws.getParameter).toHaveBeenCalledWith(mockSsmClient, '/github/slack-github-action/read')
       expect(mockedGithub.getOctokit).toHaveBeenCalledWith('github-token')
     })
 
@@ -308,8 +306,6 @@ describe('github', () => {
     })
 
     it('should create slack client with SSM client', async () => {
-      const { createSlackClient } = require('./slack')
-
       mockOctokit.rest.actions.listJobsForWorkflowRun.mockResolvedValue({
         data: { jobs: [] }
       })
@@ -327,7 +323,7 @@ describe('github', () => {
 
       await runNotificationWorkflow(mockSsmClient, mockWorkflowRun, 'alerts')
 
-      expect(createSlackClient).toHaveBeenCalledWith(mockSsmClient)
+      expect(mockedSlack.createSlackClient).toHaveBeenCalledWith(mockSsmClient)
     })
 
     it('should send message to the specified slack channel', async () => {

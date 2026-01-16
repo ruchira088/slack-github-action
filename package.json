@@ -6,6 +6,7 @@
   "scripts": {
     "start": "npm run build && node .",
     "build": "ncc build src/index.ts",
+    "lint": "eslint src",
     "test": "jest",
     "test:coverage": "jest --coverage"
   },

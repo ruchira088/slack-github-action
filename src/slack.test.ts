@@ -2,11 +2,13 @@ import axios from 'axios'
 import { SlackClient, createSlackClient } from './slack'
 import { FailedWorkflowRunDetails, SuccessfulWorkflowRunDetails } from './types'
 import { SSMClient } from '@aws-sdk/client-ssm'
+import * as awsModule from './aws'
 
 jest.mock('axios')
 jest.mock('./aws')
 
 const mockedAxios = axios as jest.Mocked<typeof axios>
+const mockedAws = awsModule as jest.Mocked<typeof awsModule>
 
 describe('SlackClient', () => {
   let mockAxiosInstance: {
@@ -341,8 +343,7 @@ describe('SlackClient', () => {
 
 describe('createSlackClient', () => {
   it('should create SlackClient with token from SSM', async () => {
-    const { getParameter } = require('./aws')
-    getParameter.mockResolvedValue('ssm-slack-token')
+    mockedAws.getParameter.mockResolvedValue('ssm-slack-token')
 
     mockedAxios.create.mockReturnValue({
       get: jest.fn(),
@@ -352,7 +353,7 @@ describe('createSlackClient', () => {
     const mockSsmClient = {} as SSMClient
     const client = await createSlackClient(mockSsmClient)
 
-    expect(getParameter).toHaveBeenCalledWith(mockSsmClient, '/github/slack/bot-token')
+    expect(mockedAws.getParameter).toHaveBeenCalledWith(mockSsmClient, '/github/slack/bot-token')
     expect(client).toBeInstanceOf(SlackClient)
     expect(mockedAxios.create).toHaveBeenCalledWith({
       baseURL: 'https://slack.com/api/',
