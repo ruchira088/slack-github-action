@@ -29,6 +29,9 @@ jobs:
       - name: Linting code
         run: npx eslint src
 
+      - name: Run tests
+        run: npm test
+
       - name: Build code
         run: ./node_modules/.bin/ncc build src/index.ts -o output
 

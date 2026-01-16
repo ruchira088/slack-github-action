@@ -1,11 +1,13 @@
 {
   "name": "slack-github-action",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "description": "Sends Slack notifications about the results of GitHub Actions workflows",
   "main": "dist/index.js",
   "scripts": {
     "start": "npm run build && node .",
-    "build": "ncc build src/index.ts"
+    "build": "ncc build src/index.ts",
+    "test": "jest",
+    "test:coverage": "jest --coverage"
   },
   "author": "Ruchira (Richie) Jayasekara <me@ruchij.com>",
   "license": "ISC",
@@ -18,8 +20,11 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.39.2",
+    "@types/jest": "^29.5.14",
     "@vercel/ncc": "^0.38.4",
     "eslint": "^9.39.2",
+    "jest": "^29.7.0",
+    "ts-jest": "^29.2.5",
     "typescript": "^5.9.3",
     "typescript-eslint": "^8.53.0"
   }

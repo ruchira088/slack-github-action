@@ -6,11 +6,13 @@ inputs:
     required: false
     default: 'arn:aws:iam::365562660444:role/github_iam_role'
   aws-region:
+    description: 'AWS region'
     required: false
     default: 'ap-southeast-2'
   slack-channel:
+    description: 'Slack channel to send notifications to'
     required: false
     default: 'github-actions'
 runs:
-  using: node20
+  using: node24
   main: 'dist/index.js'
