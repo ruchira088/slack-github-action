@@ -101,6 +101,7 @@ jobs:
 
     needs:
       - check-code
+      - release
 
     steps:
       - name: Send Slack notification
