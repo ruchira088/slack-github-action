@@ -1,6 +1,6 @@
 {
   "name": "slack-github-action",
-  "version": "1.0.4",
+  "version": "1.0.5",
   "description": "Sends Slack notifications about the results of GitHub Actions workflows",
   "main": "dist/index.js",
   "scripts": {
