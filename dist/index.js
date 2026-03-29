@@ -76550,6 +76550,7 @@ var {
 
 // src/slack.ts
 var SlackClient = class {
+  axiosInstance;
   constructor(apiToken) {
     this.axiosInstance = axios_default.create({
       baseURL: "https://slack.com/api/",
