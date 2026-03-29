@@ -23,7 +23,6 @@ Payload: ${JSON.stringify(github.context.payload, null, 2)}`
 
   const ssmClient = new SSMClient({region: awsRegion, credentials: awsCredentials})
 
-
   const githubWorkflowRun: GithubWorkflowRun = {
     owner: github.context.repo.owner,
     repo: github.context.repo.repo,
@@ -33,4 +32,6 @@ Payload: ${JSON.stringify(github.context.payload, null, 2)}`
   await runNotificationWorkflow(ssmClient, githubWorkflowRun, slackChannel)
 }
 
-runGitHubWorkflow()
+runGitHubWorkflow().catch((error) => {
+  core.setFailed(error instanceof Error ? error.message : String(error))
+})

@@ -110,6 +110,39 @@ describe('SlackClient', () => {
       await expect(client.getChannelId('any-channel')).rejects.toThrow('invalid_auth')
     })
 
+    it('should throw error when maximum number of pages is reached', async () => {
+      mockAxiosInstance.get.mockResolvedValue({
+        data: {
+          ok: true,
+          channels: [{ id: 'C123', name: 'other-channel' }],
+          response_metadata: { next_cursor: 'next' }
+        }
+      })
+
+      const client = new SlackClient('test-token')
+
+      await expect(client.getChannelId('nonexistent', undefined, 51)).rejects.toThrow(
+        'Maximum number of pages reached'
+      )
+      expect(mockAxiosInstance.get).not.toHaveBeenCalled()
+    })
+
+    it('should return undefined when next_cursor is empty string', async () => {
+      mockAxiosInstance.get.mockResolvedValue({
+        data: {
+          ok: true,
+          channels: [{ id: 'C123', name: 'general' }],
+          response_metadata: { next_cursor: '' }
+        }
+      })
+
+      const client = new SlackClient('test-token')
+      const channelId = await client.getChannelId('nonexistent')
+
+      expect(channelId).toBeUndefined()
+      expect(mockAxiosInstance.get).toHaveBeenCalledTimes(1)
+    })
+
     it('should handle cursor parameter correctly', async () => {
       mockAxiosInstance.get.mockResolvedValue({
         data: {
@@ -154,7 +187,25 @@ describe('SlackClient', () => {
       consoleSpy.mockRestore()
     })
 
-    it('should log error when message sending fails', async () => {
+    it('should throw error when message sending fails', async () => {
+      mockAxiosInstance.get.mockResolvedValue({
+        data: {
+          ok: true,
+          channels: [{ id: 'C123', name: 'test-channel' }]
+        }
+      })
+      mockAxiosInstance.post.mockResolvedValue({
+        data: { ok: false, error: 'channel_not_found' }
+      })
+
+      const client = new SlackClient('test-token')
+
+      await expect(client.sendMessage('test-channel', mockBlocks)).rejects.toThrow(
+        'Failed to send Slack message: channel_not_found'
+      )
+    })
+
+    it('should throw with unknown error when no error detail provided', async () => {
       mockAxiosInstance.get.mockResolvedValue({
         data: {
           ok: true,
@@ -165,14 +216,11 @@ describe('SlackClient', () => {
         data: { ok: false }
       })
 
-      const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation()
-
       const client = new SlackClient('test-token')
-      await client.sendMessage('test-channel', mockBlocks)
 
-      expect(consoleErrorSpy).toHaveBeenCalledWith('Failed to send Slack message')
-
-      consoleErrorSpy.mockRestore()
+      await expect(client.sendMessage('test-channel', mockBlocks)).rejects.toThrow(
+        'Failed to send Slack message: unknown error'
+      )
     })
 
     it('should throw error when channel is not found', async () => {

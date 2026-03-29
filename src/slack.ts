@@ -76,11 +76,17 @@ export class SlackClient {
     if (response.data.ok) {
       console.log("Slack message sent")
     } else {
-      console.error("Failed to send Slack message")
+      throw new Error(`Failed to send Slack message: ${response.data.error ?? 'unknown error'}`)
     }
   }
 
-  async getChannelId(channelName: string, cursor?: string): Promise<string | undefined> {
+  async getChannelId(channelName: string, cursor?: string, pageNumber?: number): Promise<string | undefined> {
+    const currentPage = pageNumber ?? 0
+
+    if (currentPage > 50) {
+      throw new Error("Maximum number of pages reached")
+    }
+
     const queryParams: Record<string, string | number | undefined> = {cursor}
 
     const queryString =
@@ -98,8 +104,8 @@ export class SlackClient {
 
       if (channel != undefined) {
         return channel.id
-      } else if (responseMetadata?.next_cursor != undefined) {
-        return this.getChannelId(channelName, responseMetadata.next_cursor)
+      } else if (responseMetadata?.next_cursor) {
+        return this.getChannelId(channelName, responseMetadata.next_cursor, currentPage + 1)
       } else {
         return undefined
       }

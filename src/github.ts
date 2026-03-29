@@ -25,16 +25,16 @@ export async function runNotificationWorkflow(
 
   const failedJob =
     jobsForWorkflowRun.data.jobs
-      .find(job => job.conclusion != null && FAILED_GITHUB_CONCLUSIONS.includes(job.conclusion))
+      .find((job: { conclusion: string | null; name: string; steps?: { name: string; conclusion: string | null }[]; html_url: string | null }) => job.conclusion != null && FAILED_GITHUB_CONCLUSIONS.includes(job.conclusion))
 
   const workflowRun = await octokit.rest.actions.getWorkflowRun(workflowRunParameters)
 
   const workflowRunDetails: WorkflowRunDetails = {
     repository: workflowRun.data.repository.full_name,
-    branch: workflowRun.data.head_branch as string,
+    branch: workflowRun.data.head_branch ?? "unknown",
     commitMessage: workflowRun.data.display_title,
     commitSha: workflowRun.data.head_sha,
-    workflowName: workflowRun.data.name as string,
+    workflowName: workflowRun.data.name ?? "unknown",
     url: workflowRun.data.html_url
   }
 
@@ -42,7 +42,7 @@ export async function runNotificationWorkflow(
 
   if (failedJob != null) {
     const failedStep: string =
-      failedJob.steps?.find(step => step.conclusion != null && FAILED_GITHUB_CONCLUSIONS.includes(step.conclusion))?.name as string
+      failedJob.steps?.find((step: { name: string; conclusion: string | null }) => step.conclusion != null && FAILED_GITHUB_CONCLUSIONS.includes(step.conclusion))?.name ?? "Unknown step"
 
     const failedWorkflowRunDetails: FailedWorkflowRunDetails = {
       ...workflowRunDetails,

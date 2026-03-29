@@ -62,6 +62,24 @@ describe('aws', () => {
       await expect(getParameter(mockSsmClient, '/nonexistent')).rejects.toThrow('Parameter not found')
     })
 
+    it('should throw when Parameter is undefined', async () => {
+      const mockSend = jest.fn().mockResolvedValue({ Parameter: undefined })
+      const mockSsmClient = { send: mockSend } as unknown as SSMClient
+
+      await expect(getParameter(mockSsmClient, '/missing')).rejects.toThrow(
+        "SSM parameter '/missing' not found or has no value"
+      )
+    })
+
+    it('should throw when Parameter.Value is undefined', async () => {
+      const mockSend = jest.fn().mockResolvedValue({ Parameter: { Name: '/empty' } })
+      const mockSsmClient = { send: mockSend } as unknown as SSMClient
+
+      await expect(getParameter(mockSsmClient, '/empty')).rejects.toThrow(
+        "SSM parameter '/empty' not found or has no value"
+      )
+    })
+
     it('should request decryption for all parameters', async () => {
       const mockSend = jest.fn().mockResolvedValue({
         Parameter: { Value: 'decrypted-value' }

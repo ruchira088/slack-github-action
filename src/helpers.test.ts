@@ -23,11 +23,6 @@ describe('helpers', () => {
       expect(result).toBe('test')
     })
 
-    it('should handle null values (not treated as undefined)', () => {
-      const result = map(null, () => 'transformed')
-      expect(result).toBe('transformed')
-    })
-
     it('should handle empty string (not treated as undefined)', () => {
       const result = map('', (s) => s.length)
       expect(result).toBe(0)

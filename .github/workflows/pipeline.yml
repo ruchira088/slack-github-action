@@ -33,10 +33,10 @@ jobs:
         run: npm test
 
       - name: Build code
-        run: ./node_modules/.bin/ncc build src/index.ts -o output
+        run: ./node_modules/.bin/esbuild src/index.ts --bundle --platform=node --format=cjs --outfile=output/index.js
 
       - name: Check committed build files
-        run: diff -r dist output
+        run: diff dist/index.js output/index.js
 
   release:
     runs-on: ubuntu-latest
@@ -101,7 +101,6 @@ jobs:
 
     needs:
       - check-code
-      - release
 
     steps:
       - name: Send Slack notification

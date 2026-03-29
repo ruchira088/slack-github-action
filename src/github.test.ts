@@ -7,7 +7,6 @@ import * as slackModule from './slack'
 
 jest.mock('./aws')
 jest.mock('./slack')
-jest.mock('@actions/github')
 
 const mockedGithub = github as jest.Mocked<typeof github>
 const mockedAws = awsModule as jest.Mocked<typeof awsModule>
@@ -58,7 +57,7 @@ describe('github', () => {
         sendSuccessMessage: jest.fn()
       }
 
-      mockedGithub.getOctokit = jest.fn().mockReturnValue(mockOctokit)
+      ;(mockedGithub.getOctokit as jest.Mock).mockReturnValue(mockOctokit)
       mockedAws.getParameter.mockResolvedValue('github-token')
       mockedSlack.createSlackClient.mockResolvedValue(mockSlackClient as unknown as slackModule.SlackClient)
     })

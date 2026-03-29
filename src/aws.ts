@@ -1,19 +1,17 @@
-import {AwsCredentialIdentity} from "@smithy/types/dist-types/identity/awsCredentialIdentity"
+import {AwsCredentialIdentity} from "@smithy/types"
 import * as core from "@actions/core"
-import {AssumeRoleWithWebIdentityCommand, STSClient} from "@aws-sdk/client-sts"
-import {
-  AssumeRoleWithWebIdentityCommandOutput
-} from "@aws-sdk/client-sts/dist-types/commands/AssumeRoleWithWebIdentityCommand"
-import {GetParameterCommand, Parameter, SSMClient} from "@aws-sdk/client-ssm"
-import {GetParameterCommandOutput} from "@aws-sdk/client-ssm/dist-types/commands/GetParameterCommand"
+import {AssumeRoleWithWebIdentityCommand, AssumeRoleWithWebIdentityCommandOutput, STSClient} from "@aws-sdk/client-sts"
+import {GetParameterCommand, GetParameterCommandOutput, SSMClient} from "@aws-sdk/client-ssm"
 
 export async function getParameter(ssmClient: SSMClient, parameterName: string): Promise<string> {
   const getParameterCommand = new GetParameterCommand({Name: parameterName, WithDecryption: true})
   const response: GetParameterCommandOutput = await ssmClient.send(getParameterCommand)
 
-  const parameterValue = (response.Parameter as Parameter).Value as string
+  if (response.Parameter == undefined || response.Parameter.Value == undefined) {
+    throw new Error(`SSM parameter '${parameterName}' not found or has no value`)
+  }
 
-  return parameterValue
+  return response.Parameter.Value
 }
 
 export async function loginToAws(roleArn: string, region: string, sessionName?: string): Promise<AwsCredentialIdentity> {

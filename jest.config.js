@@ -1,9 +1,15 @@
-/** @type {import('ts-jest').JestConfigWithTsJest} */
+/** @type {import('jest').Config} */
 module.exports = {
-  preset: 'ts-jest',
   testEnvironment: 'node',
   roots: ['<rootDir>/src'],
   testMatch: ['**/*.test.ts'],
+  transform: {
+    '^.+\\.tsx?$': '@swc/jest',
+  },
+  moduleNameMapper: {
+    '^@actions/core$': '<rootDir>/src/__mocks__/@actions/core.js',
+    '^@actions/github$': '<rootDir>/src/__mocks__/@actions/github.js',
+  },
   collectCoverageFrom: [
     'src/**/*.ts',
     '!src/**/*.test.ts',
