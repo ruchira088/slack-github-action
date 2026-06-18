@@ -9,6 +9,7 @@ A GitHub Action that sends Slack notifications about the results of GitHub Actio
 - For failed workflows, identifies the specific failed job and step with a direct link
 - Uses AWS OIDC for secure, credential-free authentication
 - Retrieves secrets securely from AWS SSM Parameter Store
+- Fully unit tested with mocked GitHub, AWS, and Slack integrations
 
 ## Prerequisites
 
@@ -184,33 +185,48 @@ npm install
 npm run build
 
 # Lint the code
-npx eslint src
+npm run lint
+
+# Run the tests
+npm test
+
+# Run the tests with coverage
+npm run test:coverage
+```
+
+You can also run the action locally against mocked GitHub and AWS implementations:
+
+```bash
+npm run local
 ```
 
 ### Project Structure
 
 ```
 ├── src/
-│   ├── index.ts       # Main entry point
-│   ├── aws.ts         # AWS authentication and SSM operations
-│   ├── github.ts      # GitHub API interactions
-│   ├── slack.ts       # Slack API client
-│   ├── types.ts       # TypeScript type definitions
-│   └── helpers.ts     # Utility functions
-├── dist/              # Compiled output (committed for GitHub Actions)
-├── action.yml         # Action metadata
+│   ├── __mocks__/        # Shared module mocks used in tests
+│   ├── index.ts          # Main entry point
+│   ├── local-index.ts    # Local entry point for running against mocks
+│   ├── aws.ts            # AWS authentication and SSM operations
+│   ├── github.ts         # GitHub API interactions
+│   ├── slack.ts          # Slack API client
+│   ├── types.ts          # TypeScript type definitions
+│   ├── helpers.ts        # Utility functions
+│   └── *.test.ts         # Unit tests (Jest + @swc/jest)
+├── dist/                 # Compiled output (committed for GitHub Actions)
+├── action.yml            # Action metadata
 └── package.json
 ```
 
 ### Building
 
-The action is bundled using [@vercel/ncc](https://github.com/vercel/ncc) to create a self-contained distribution:
+The action is bundled using [esbuild](https://esbuild.github.io/) to create a self-contained distribution:
 
 ```bash
 npm run build
 ```
 
-This compiles TypeScript and bundles all dependencies into the `dist/` directory.
+This compiles TypeScript and bundles all dependencies into a single `dist/index.js` file.
 
 ## License
 
