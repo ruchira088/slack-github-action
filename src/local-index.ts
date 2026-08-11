@@ -37,5 +37,7 @@ async function runLocalWorkflow(isSuccess: boolean) {
   await runNotificationWorkflow(ssmClient, githubWorkflowRun, "github-actions")
 }
 
-runLocalWorkflow(true)
+runLocalWorkflow(true).catch((error: unknown) => {
+  console.error(error instanceof Error ? error.message : String(error))
+})
 // runLocalWorkflow(false)

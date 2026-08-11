@@ -26,6 +26,7 @@ describe('SlackClient', () => {
 
   describe('constructor', () => {
     it('should create an axios instance with correct configuration', () => {
+      // oxlint-disable-next-line no-new -- constructed for its side effect on axios.create
       new SlackClient('test-token')
 
       expect(mockedAxios.create).toHaveBeenCalledWith({
