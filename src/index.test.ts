@@ -12,7 +12,7 @@
  */
 
 import { map } from './helpers'
-import { REPOSITORY_OWNER } from './github'
+import { isOwnedRepository, REPOSITORY_OWNER } from './github'
 
 describe('index module patterns', () => {
   describe('repository owner validation', () => {
@@ -20,12 +20,9 @@ describe('index module patterns', () => {
       expect(REPOSITORY_OWNER).toBe('ruchira088')
     })
 
-    it('should validate repository ownership pattern', () => {
-      const validFullName = 'ruchira088/test-repo'
-      const invalidFullName = 'other-owner/test-repo'
-
-      expect(validFullName.startsWith(REPOSITORY_OWNER)).toBe(true)
-      expect(invalidFullName.startsWith(REPOSITORY_OWNER)).toBe(false)
+    it('should validate repository ownership via isOwnedRepository', () => {
+      expect(isOwnedRepository('ruchira088/test-repo')).toBe(true)
+      expect(isOwnedRepository('other-owner/test-repo')).toBe(false)
     })
   })
 

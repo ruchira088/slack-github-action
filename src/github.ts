@@ -1,12 +1,24 @@
 import {SSMClient} from "@aws-sdk/client-ssm"
 import {getParameter} from "./aws"
 import * as github from "@actions/github"
+import {type components} from "@octokit/openapi-types"
 import {createSlackClient} from "./slack"
 import {FailedWorkflowRunDetails, GithubWorkflowRun, WorkflowRunDetails} from "./types"
 
+type GithubJob = components["schemas"]["job"]
+type GithubJobStep = NonNullable<GithubJob["steps"]>[number]
+
 export const REPOSITORY_OWNER = "ruchira088"
 
-const FAILED_GITHUB_CONCLUSIONS = ["failure", "timed_out"]
+const FAILED_GITHUB_CONCLUSIONS: ReadonlyArray<string> = ["failure", "timed_out"]
+
+export function isOwnedRepository(repositoryFullName: string | undefined): boolean {
+  return repositoryFullName?.split("/")[0] === REPOSITORY_OWNER
+}
+
+function hasFailed({conclusion}: GithubJob | GithubJobStep): boolean {
+  return conclusion != null && FAILED_GITHUB_CONCLUSIONS.includes(conclusion)
+}
 
 export async function runNotificationWorkflow(
   ssmClient: SSMClient,
@@ -23,9 +35,7 @@ export async function runNotificationWorkflow(
 
   const jobsForWorkflowRun = await octokit.rest.actions.listJobsForWorkflowRun(workflowRunParameters)
 
-  const failedJob =
-    jobsForWorkflowRun.data.jobs
-      .find((job: { conclusion: string | null; name: string; steps?: { name: string; conclusion: string | null }[]; html_url: string | null }) => job.conclusion != null && FAILED_GITHUB_CONCLUSIONS.includes(job.conclusion))
+  const failedJob: GithubJob | undefined = jobsForWorkflowRun.data.jobs.find(hasFailed)
 
   const workflowRun = await octokit.rest.actions.getWorkflowRun(workflowRunParameters)
 
@@ -41,14 +51,11 @@ export async function runNotificationWorkflow(
   const slackClient = await createSlackClient(ssmClient)
 
   if (failedJob != null) {
-    const failedStep: string =
-      failedJob.steps?.find((step: { name: string; conclusion: string | null }) => step.conclusion != null && FAILED_GITHUB_CONCLUSIONS.includes(step.conclusion))?.name ?? "Unknown step"
-
     const failedWorkflowRunDetails: FailedWorkflowRunDetails = {
       ...workflowRunDetails,
       failedJob: failedJob.name,
-      failedStep: failedStep,
-      failedStepUrl: failedJob.html_url as string
+      failedStep: failedJob.steps?.find(hasFailed)?.name ?? "Unknown step",
+      failedStepUrl: failedJob.html_url ?? workflowRunDetails.url
     }
     await slackClient.sendFailureMessage(slackChannel, failedWorkflowRunDetails)
   } else {

@@ -3,7 +3,7 @@ import * as github from "@actions/github"
 import {SSMClient} from "@aws-sdk/client-ssm"
 import {loginToAws} from "./aws"
 import {map} from "./helpers"
-import {REPOSITORY_OWNER, runNotificationWorkflow} from "./github"
+import {isOwnedRepository, REPOSITORY_OWNER, runNotificationWorkflow} from "./github"
 import {GithubWorkflowRun} from "./types"
 
 async function runGitHubWorkflow() {
@@ -11,10 +11,11 @@ async function runGitHubWorkflow() {
   const awsRegion: string = core.getInput("aws-region")
   const slackChannel: string = core.getInput("slack-channel")
 
-  if (!github.context.payload.repository?.full_name?.startsWith(REPOSITORY_OWNER)) {
+  const repositoryFullName = github.context.payload.repository?.full_name
+
+  if (!isOwnedRepository(repositoryFullName)) {
     throw new Error(
-      `Only repositories owned by ${REPOSITORY_OWNER} can use this GitHub Action.
-Payload: ${JSON.stringify(github.context.payload, null, 2)}`
+      `Only repositories owned by ${REPOSITORY_OWNER} can use this GitHub Action (repository: ${repositoryFullName ?? "unknown"})`
     )
   }
 

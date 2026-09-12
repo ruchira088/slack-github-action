@@ -1,6 +1,6 @@
 import { SSMClient } from '@aws-sdk/client-ssm'
 import * as github from '@actions/github'
-import { runNotificationWorkflow, REPOSITORY_OWNER } from './github'
+import { runNotificationWorkflow, isOwnedRepository, REPOSITORY_OWNER } from './github'
 import { GithubWorkflowRun } from './types'
 import * as awsModule from './aws'
 import * as slackModule from './slack'
@@ -16,6 +16,24 @@ describe('github', () => {
   describe('REPOSITORY_OWNER', () => {
     it('should be ruchira088', () => {
       expect(REPOSITORY_OWNER).toBe('ruchira088')
+    })
+  })
+
+  describe('isOwnedRepository', () => {
+    it('should accept repositories owned by the repository owner', () => {
+      expect(isOwnedRepository('ruchira088/slack-github-action')).toBe(true)
+    })
+
+    it('should reject repositories owned by someone else', () => {
+      expect(isOwnedRepository('other-owner/slack-github-action')).toBe(false)
+    })
+
+    it('should reject owners that merely start with the repository owner name', () => {
+      expect(isOwnedRepository('ruchira0881/slack-github-action')).toBe(false)
+    })
+
+    it('should reject an undefined repository name', () => {
+      expect(isOwnedRepository(undefined)).toBe(false)
     })
   })
 
@@ -177,6 +195,36 @@ describe('github', () => {
         expect.objectContaining({
           failedJob: 'long-running-job',
           failedStep: 'Long task'
+        })
+      )
+    })
+
+    it('should fall back to the workflow run URL when the failed job has no URL', async () => {
+      mockOctokit.rest.actions.listJobsForWorkflowRun.mockResolvedValue({
+        data: {
+          jobs: [
+            { id: 1, name: 'build', conclusion: 'failure', html_url: null, steps: [] }
+          ]
+        }
+      })
+
+      mockOctokit.rest.actions.getWorkflowRun.mockResolvedValue({
+        data: {
+          repository: { full_name: 'ruchira088/test-repo' },
+          head_branch: 'main',
+          display_title: 'Fix bug',
+          head_sha: 'abc123',
+          name: 'CI',
+          html_url: 'https://github.com/ruchira088/test-repo/actions/runs/12345'
+        }
+      })
+
+      await runNotificationWorkflow(mockSsmClient, mockWorkflowRun, 'alerts')
+
+      expect(mockSlackClient.sendFailureMessage).toHaveBeenCalledWith(
+        'alerts',
+        expect.objectContaining({
+          failedStepUrl: 'https://github.com/ruchira088/test-repo/actions/runs/12345'
         })
       )
     })
