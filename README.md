@@ -194,7 +194,7 @@ npm test
 npm run test:coverage
 ```
 
-You can also run the action locally against mocked GitHub and AWS implementations:
+You can also run the action locally. This uses your local AWS credentials (default credential chain, no OIDC) and sends a real Slack message for a recent workflow run of the repository configured in `src/local-index.ts`:
 
 ```bash
 npm run local

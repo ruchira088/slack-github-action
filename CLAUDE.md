@@ -23,8 +23,9 @@ CI (`.github/workflows/pipeline.yml`) runs lint → typecheck → test → build
 ## Rules that CI enforces
 
 - **Rebuild and commit `dist/index.js` after any `src/` change.** CI fails if the committed bundle is stale.
-- **Bump `version` in `package.json` before merging to `main`.** Every push to `main` creates a GitHub release `v<version>` and force-moves the `v<major>` tag; a duplicate version makes the release step fail.
+- **Bump `version` in `package.json` to publish.** Every push to `main` creates a GitHub release `v<version>` and force-moves the `v<major>` tag; if that release already exists the release job is a no-op, so an un-bumped push ships nothing.
 - oxlint errors on `any` and non-null assertions (`!`). Type assertions (`as`) are allowed; prefer `?? fallback` for nullable API fields.
+- Secrets read from SSM go through `getParameter`, which calls `core.setSecret` so they are masked in the Actions log; keep it that way for any new parameter.
 
 ## Architecture
 
@@ -33,7 +34,7 @@ Data flow, one function per module:
 1. `src/index.ts` — entry. Reads action inputs, checks repo owner, calls `loginToAws` (OIDC token → STS `AssumeRoleWithWebIdentity`), builds an `SSMClient`, and hands off to `runNotificationWorkflow`. **Executes on import**, so it is not unit-testable; keep it thin and put logic in the modules below.
 2. `src/aws.ts` — `loginToAws`, `getParameter` (SSM `WithDecryption`). Parameter paths: `/github/slack-github-action/read` (GitHub PAT), `/github/slack/bot-token`.
 3. `src/github.ts` — `runNotificationWorkflow`: fetches jobs + run via Octokit, finds the first job with conclusion `failure`/`timed_out`, builds `WorkflowRunDetails` / `FailedWorkflowRunDetails` (`src/types.ts`), and dispatches to the Slack client.
-4. `src/slack.ts` — `SlackClient` over axios. Resolves channel *name* → ID by paginating `conversations.list` (capped at 50 pages), then `chat.postMessage` with Block Kit `mrkdwn` blocks.
+4. `src/slack.ts` — `SlackClient` over axios. Resolves channel *name* → ID by paginating `conversations.list` (capped at 50 pages), then `chat.postMessage` with a `SlackMessage` (`text` fallback + Block Kit section `fields`, built by `buildMessage`).
 
 `src/local-index.ts` is a separate esbuild entry (`npm run local`) that skips OIDC and uses the default AWS credential chain; it picks a recent run from `ruchira088/dynamic-dns` and sends a real Slack message.
 
