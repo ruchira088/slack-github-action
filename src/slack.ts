@@ -1,7 +1,46 @@
 import axios, {AxiosInstance} from "axios"
 import {SSMClient} from "@aws-sdk/client-ssm"
 import {getParameter} from "./aws"
-import {FailedWorkflowRunDetails, SuccessfulWorkflowRunDetails} from "./types"
+import {FailedWorkflowRunDetails, SuccessfulWorkflowRunDetails, WorkflowRunDetails} from "./types"
+
+export interface SlackMessage {
+  /** Plain-text fallback used for notifications, screen readers and clients that cannot render blocks. */
+  readonly text: string
+  readonly blocks: object[]
+}
+
+interface MessageOutcome {
+  readonly result: string
+  readonly summary: string
+  readonly extraFields: MarkdownField[]
+  readonly link: { readonly url: string, readonly label: string }
+}
+
+type MarkdownField = { readonly type: "mrkdwn", readonly text: string }
+
+function field(label: string, value: string): MarkdownField {
+  return {type: "mrkdwn", text: `*${label}*\n${value}`}
+}
+
+function buildMessage(details: WorkflowRunDetails, outcome: MessageOutcome): SlackMessage {
+  const fields: MarkdownField[] = [
+    field("Repository", details.repository),
+    field("Branch", details.branch),
+    field("Message", details.commitMessage),
+    field("Commit SHA", `\`${details.commitSha}\``),
+    field("Workflow", details.workflowName),
+    field("Result", outcome.result),
+    ...outcome.extraFields
+  ]
+
+  return {
+    text: `${details.workflowName} ${outcome.summary} for ${details.repository} (${details.branch})`,
+    blocks: [
+      {type: "section", fields},
+      {type: "section", text: {type: "mrkdwn", text: `<${outcome.link.url}|${outcome.link.label}>`}}
+    ]
+  }
+}
 
 export class SlackClient {
   readonly axiosInstance: AxiosInstance
@@ -15,49 +54,29 @@ export class SlackClient {
     })
   }
 
-  async sendFailureMessage(channelName: string, failedWorkflowRunDetails: FailedWorkflowRunDetails) {
-    const blocks = [
-      {
-        type: "section",
-        text: {
-          type: "mrkdwn",
-          text: `*Repository*:\t   ${failedWorkflowRunDetails.repository}
-*Branch*:\t\t\t  ${failedWorkflowRunDetails.branch}
-*Message*:\t\t   ${failedWorkflowRunDetails.commitMessage}
-*Commit SHA*:   \`${failedWorkflowRunDetails.commitSha}\`
-*Workflow*:\t\t ${failedWorkflowRunDetails.workflowName}
-*Result*:\t\t\t    FAILED :x:
-*Failed Job*:\t\t ${failedWorkflowRunDetails.failedJob}
-*Failed Step*:\t   ${failedWorkflowRunDetails.failedStep}
-<${failedWorkflowRunDetails.failedStepUrl}|Failed Step URL>`
-        }
-      }
-    ]
+  async sendFailureMessage(channelName: string, details: FailedWorkflowRunDetails) {
+    const message = buildMessage(details, {
+      result: "FAILED :x:",
+      summary: `FAILED (${details.failedJob} / ${details.failedStep})`,
+      extraFields: [field("Failed Job", details.failedJob), field("Failed Step", details.failedStep)],
+      link: {url: details.failedStepUrl, label: "Failed Step URL"}
+    })
 
-    return this.sendMessage(channelName, blocks)
+    return this.sendMessage(channelName, message)
   }
 
-  async sendSuccessMessage(channelName: string, successfulWorkflowRunDetails: SuccessfulWorkflowRunDetails) {
-    const blocks = [
-      {
-        type: "section",
-        text: {
-          type: "mrkdwn",
-          text: `*Repository*:\t   ${successfulWorkflowRunDetails.repository}
-*Branch*:\t\t\t  ${successfulWorkflowRunDetails.branch}
-*Message*:\t\t   ${successfulWorkflowRunDetails.commitMessage}
-*Commit SHA*:   \`${successfulWorkflowRunDetails.commitSha}\`
-*Workflow*:\t\t ${successfulWorkflowRunDetails.workflowName}
-*Result*:\t\t\t\tSUCCESS :white_check_mark:
-<${successfulWorkflowRunDetails.url}|Job URL>`
-        }
-      }
-    ]
+  async sendSuccessMessage(channelName: string, details: SuccessfulWorkflowRunDetails) {
+    const message = buildMessage(details, {
+      result: "SUCCESS :white_check_mark:",
+      summary: "SUCCESS",
+      extraFields: [],
+      link: {url: details.url, label: "Job URL"}
+    })
 
-    return this.sendMessage(channelName, blocks)
+    return this.sendMessage(channelName, message)
   }
 
-  async sendMessage(channelName: string, blocks: object[]) {
+  async sendMessage(channelName: string, message: SlackMessage) {
     const channel = await this.getChannelId(channelName)
 
     if (channel == undefined) {
@@ -66,7 +85,7 @@ export class SlackClient {
 
     const response = await this.axiosInstance.post(
       "/chat.postMessage",
-      {channel, blocks}, {
+      {channel, text: message.text, blocks: message.blocks}, {
         headers: {
           "Content-Type": "application/json"
         }
@@ -87,15 +106,10 @@ export class SlackClient {
       throw new Error("Maximum number of pages reached")
     }
 
-    const queryParams: Record<string, string | number | undefined> = {cursor}
+    const response = await this.axiosInstance.get("/conversations.list", {
+      params: {limit: 1000, exclude_archived: true, cursor}
+    })
 
-    const queryString =
-      Object.keys(queryParams)
-        .filter(key => queryParams[key] != undefined)
-        .map(key => key + "=" + queryParams[key])
-        .join("&")
-
-    const response = await this.axiosInstance.get("/conversations.list?" + queryString)
     if (response.data.ok) {
       const channels: { id: string, name: string }[] = response.data.channels
       const responseMetadata = response.data.response_metadata

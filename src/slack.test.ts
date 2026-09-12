@@ -10,6 +10,13 @@ jest.mock('./aws')
 const mockedAxios = axios as jest.Mocked<typeof axios>
 const mockedAws = awsModule as jest.Mocked<typeof awsModule>
 
+type SlackBlock = { type: string; text?: { text: string }; fields?: { text: string }[] }
+
+/** Flattens every mrkdwn string in a Block Kit payload for content assertions. */
+function blockText(blocks: SlackBlock[]): string {
+  return blocks.flatMap(block => [block.text?.text ?? '', ...(block.fields ?? []).map(f => f.text)]).join('\n')
+}
+
 describe('SlackClient', () => {
   let mockAxiosInstance: {
     get: jest.Mock
@@ -54,7 +61,9 @@ describe('SlackClient', () => {
       const channelId = await client.getChannelId('random')
 
       expect(channelId).toBe('C456')
-      expect(mockAxiosInstance.get).toHaveBeenCalledWith('/conversations.list?')
+      expect(mockAxiosInstance.get).toHaveBeenCalledWith('/conversations.list', {
+        params: { limit: 1000, exclude_archived: true, cursor: undefined }
+      })
     })
 
     it('should return undefined when channel is not found and no more pages', async () => {
@@ -94,8 +103,12 @@ describe('SlackClient', () => {
 
       expect(channelId).toBe('C456')
       expect(mockAxiosInstance.get).toHaveBeenCalledTimes(2)
-      expect(mockAxiosInstance.get).toHaveBeenNthCalledWith(1, '/conversations.list?')
-      expect(mockAxiosInstance.get).toHaveBeenNthCalledWith(2, '/conversations.list?cursor=cursor123')
+      expect(mockAxiosInstance.get).toHaveBeenNthCalledWith(1, '/conversations.list', {
+        params: expect.objectContaining({ cursor: undefined })
+      })
+      expect(mockAxiosInstance.get).toHaveBeenNthCalledWith(2, '/conversations.list', {
+        params: expect.objectContaining({ cursor: 'cursor123' })
+      })
     })
 
     it('should throw error when API returns not ok', async () => {
@@ -155,12 +168,15 @@ describe('SlackClient', () => {
       const client = new SlackClient('test-token')
       await client.getChannelId('my-channel', 'my-cursor')
 
-      expect(mockAxiosInstance.get).toHaveBeenCalledWith('/conversations.list?cursor=my-cursor')
+      expect(mockAxiosInstance.get).toHaveBeenCalledWith('/conversations.list', {
+        params: expect.objectContaining({ cursor: 'my-cursor' })
+      })
     })
   })
 
   describe('sendMessage', () => {
     const mockBlocks = [{ type: 'section', text: { type: 'mrkdwn', text: 'Test' } }]
+    const mockMessage = { text: 'Test fallback', blocks: mockBlocks }
 
     it('should send message successfully', async () => {
       mockAxiosInstance.get.mockResolvedValue({
@@ -176,11 +192,11 @@ describe('SlackClient', () => {
       const consoleSpy = jest.spyOn(console, 'log').mockImplementation()
 
       const client = new SlackClient('test-token')
-      await client.sendMessage('test-channel', mockBlocks)
+      await client.sendMessage('test-channel', mockMessage)
 
       expect(mockAxiosInstance.post).toHaveBeenCalledWith(
         '/chat.postMessage',
-        { channel: 'C123', blocks: mockBlocks },
+        { channel: 'C123', text: 'Test fallback', blocks: mockBlocks },
         { headers: { 'Content-Type': 'application/json' } }
       )
       expect(consoleSpy).toHaveBeenCalledWith('Slack message sent')
@@ -201,7 +217,7 @@ describe('SlackClient', () => {
 
       const client = new SlackClient('test-token')
 
-      await expect(client.sendMessage('test-channel', mockBlocks)).rejects.toThrow(
+      await expect(client.sendMessage('test-channel', mockMessage)).rejects.toThrow(
         'Failed to send Slack message: channel_not_found'
       )
     })
@@ -219,7 +235,7 @@ describe('SlackClient', () => {
 
       const client = new SlackClient('test-token')
 
-      await expect(client.sendMessage('test-channel', mockBlocks)).rejects.toThrow(
+      await expect(client.sendMessage('test-channel', mockMessage)).rejects.toThrow(
         'Failed to send Slack message: unknown error'
       )
     })
@@ -234,7 +250,7 @@ describe('SlackClient', () => {
 
       const client = new SlackClient('test-token')
 
-      await expect(client.sendMessage('nonexistent', mockBlocks)).rejects.toThrow(
+      await expect(client.sendMessage('nonexistent', mockMessage)).rejects.toThrow(
         'Channel name: nonexistent not found'
       )
     })
@@ -253,67 +269,53 @@ describe('SlackClient', () => {
       failedStepUrl: 'https://github.com/owner/repo/actions/runs/123/job/456'
     }
 
-    it('should send failure message with correct block structure', async () => {
+    beforeEach(() => {
       mockAxiosInstance.get.mockResolvedValue({
-        data: {
-          ok: true,
-          channels: [{ id: 'C123', name: 'alerts' }]
-        }
+        data: { ok: true, channels: [{ id: 'C123', name: 'alerts' }] }
       })
-      mockAxiosInstance.post.mockResolvedValue({
-        data: { ok: true }
-      })
-
+      mockAxiosInstance.post.mockResolvedValue({ data: { ok: true } })
       jest.spyOn(console, 'log').mockImplementation()
+    })
 
+    it('should include a plain-text fallback summarising the failure', async () => {
       const client = new SlackClient('test-token')
       await client.sendFailureMessage('alerts', failedDetails)
 
-      expect(mockAxiosInstance.post).toHaveBeenCalledWith(
-        '/chat.postMessage',
+      const { text } = postedMessage()
+      expect(text).toContain('FAILED')
+      expect(text).toContain('owner/repo')
+      expect(text).toContain('CI')
+      expect(text).toContain('build')
+      expect(text).toContain('Run tests')
+    })
+
+    it('should lay out the details as section fields', async () => {
+      const client = new SlackClient('test-token')
+      await client.sendFailureMessage('alerts', failedDetails)
+
+      const { blocks } = postedMessage()
+      expect(blocks[0]).toEqual(
         expect.objectContaining({
-          channel: 'C123',
-          blocks: expect.arrayContaining([
-            expect.objectContaining({
-              type: 'section',
-              text: expect.objectContaining({
-                type: 'mrkdwn',
-                text: expect.stringContaining('FAILED :x:')
-              })
-            })
+          type: 'section',
+          fields: expect.arrayContaining([
+            { type: 'mrkdwn', text: '*Repository*\nowner/repo' },
+            { type: 'mrkdwn', text: '*Branch*\nmain' },
+            { type: 'mrkdwn', text: '*Message*\nFix bug' },
+            { type: 'mrkdwn', text: '*Commit SHA*\n`abc123`' },
+            { type: 'mrkdwn', text: '*Workflow*\nCI' },
+            { type: 'mrkdwn', text: '*Result*\nFAILED :x:' },
+            { type: 'mrkdwn', text: '*Failed Job*\nbuild' },
+            { type: 'mrkdwn', text: '*Failed Step*\nRun tests' }
           ])
-        }),
-        expect.any(Object)
+        })
       )
     })
 
-    it('should include all failure details in the message', async () => {
-      mockAxiosInstance.get.mockResolvedValue({
-        data: {
-          ok: true,
-          channels: [{ id: 'C123', name: 'alerts' }]
-        }
-      })
-      mockAxiosInstance.post.mockResolvedValue({
-        data: { ok: true }
-      })
-
-      jest.spyOn(console, 'log').mockImplementation()
-
+    it('should link to the failed step', async () => {
       const client = new SlackClient('test-token')
       await client.sendFailureMessage('alerts', failedDetails)
 
-      const postCall = mockAxiosInstance.post.mock.calls[0]
-      const messageText = postCall[1].blocks[0].text.text
-
-      expect(messageText).toContain('owner/repo')
-      expect(messageText).toContain('main')
-      expect(messageText).toContain('Fix bug')
-      expect(messageText).toContain('abc123')
-      expect(messageText).toContain('CI')
-      expect(messageText).toContain('build')
-      expect(messageText).toContain('Run tests')
-      expect(messageText).toContain(failedDetails.failedStepUrl)
+      expect(blockText(postedMessage().blocks)).toContain(`<${failedDetails.failedStepUrl}|Failed Step URL>`)
     })
   })
 
@@ -327,67 +329,55 @@ describe('SlackClient', () => {
       url: 'https://github.com/owner/repo/actions/runs/123'
     }
 
-    it('should send success message with correct block structure', async () => {
+    beforeEach(() => {
       mockAxiosInstance.get.mockResolvedValue({
-        data: {
-          ok: true,
-          channels: [{ id: 'C123', name: 'alerts' }]
-        }
+        data: { ok: true, channels: [{ id: 'C123', name: 'alerts' }] }
       })
-      mockAxiosInstance.post.mockResolvedValue({
-        data: { ok: true }
-      })
-
+      mockAxiosInstance.post.mockResolvedValue({ data: { ok: true } })
       jest.spyOn(console, 'log').mockImplementation()
+    })
 
+    it('should include a plain-text fallback summarising the success', async () => {
       const client = new SlackClient('test-token')
       await client.sendSuccessMessage('alerts', successDetails)
 
-      expect(mockAxiosInstance.post).toHaveBeenCalledWith(
-        '/chat.postMessage',
+      const { text } = postedMessage()
+      expect(text).toContain('SUCCESS')
+      expect(text).toContain('owner/repo')
+      expect(text).toContain('CI')
+    })
+
+    it('should lay out the details as section fields', async () => {
+      const client = new SlackClient('test-token')
+      await client.sendSuccessMessage('alerts', successDetails)
+
+      const { blocks } = postedMessage()
+      expect(blocks[0]).toEqual(
         expect.objectContaining({
-          channel: 'C123',
-          blocks: expect.arrayContaining([
-            expect.objectContaining({
-              type: 'section',
-              text: expect.objectContaining({
-                type: 'mrkdwn',
-                text: expect.stringContaining('SUCCESS :white_check_mark:')
-              })
-            })
-          ])
-        }),
-        expect.any(Object)
+          type: 'section',
+          fields: [
+            { type: 'mrkdwn', text: '*Repository*\nowner/repo' },
+            { type: 'mrkdwn', text: '*Branch*\nmain' },
+            { type: 'mrkdwn', text: '*Message*\nAdd feature' },
+            { type: 'mrkdwn', text: '*Commit SHA*\n`def456`' },
+            { type: 'mrkdwn', text: '*Workflow*\nCI' },
+            { type: 'mrkdwn', text: '*Result*\nSUCCESS :white_check_mark:' }
+          ]
+        })
       )
     })
 
-    it('should include all success details in the message', async () => {
-      mockAxiosInstance.get.mockResolvedValue({
-        data: {
-          ok: true,
-          channels: [{ id: 'C123', name: 'alerts' }]
-        }
-      })
-      mockAxiosInstance.post.mockResolvedValue({
-        data: { ok: true }
-      })
-
-      jest.spyOn(console, 'log').mockImplementation()
-
+    it('should link to the workflow run', async () => {
       const client = new SlackClient('test-token')
       await client.sendSuccessMessage('alerts', successDetails)
 
-      const postCall = mockAxiosInstance.post.mock.calls[0]
-      const messageText = postCall[1].blocks[0].text.text
-
-      expect(messageText).toContain('owner/repo')
-      expect(messageText).toContain('main')
-      expect(messageText).toContain('Add feature')
-      expect(messageText).toContain('def456')
-      expect(messageText).toContain('CI')
-      expect(messageText).toContain(successDetails.url)
+      expect(blockText(postedMessage().blocks)).toContain(`<${successDetails.url}|Job URL>`)
     })
   })
+
+  function postedMessage(): { text: string; blocks: SlackBlock[] } {
+    return mockAxiosInstance.post.mock.calls[0][1]
+  }
 })
 
 describe('createSlackClient', () => {
