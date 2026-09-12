@@ -18326,41 +18326,41 @@ var require_eventsource_stream = __commonJS({
         if (colonPosition === 0) {
           return;
         }
-        let field = "";
+        let field2 = "";
         let value = "";
         if (colonPosition !== -1) {
-          field = line.subarray(0, colonPosition).toString("utf8");
+          field2 = line.subarray(0, colonPosition).toString("utf8");
           let valueStart = colonPosition + 1;
           if (line[valueStart] === SPACE2) {
             ++valueStart;
           }
           value = line.subarray(valueStart).toString("utf8");
         } else {
-          field = line.toString("utf8");
+          field2 = line.toString("utf8");
           value = "";
         }
-        switch (field) {
+        switch (field2) {
           case "data":
-            if (event[field] === void 0) {
-              event[field] = value;
+            if (event[field2] === void 0) {
+              event[field2] = value;
             } else {
-              event[field] += `
+              event[field2] += `
 ${value}`;
             }
             break;
           case "retry":
             if (isASCIINumber(value)) {
-              event[field] = value;
+              event[field2] = value;
             }
             break;
           case "id":
             if (isValidLastEventId(value)) {
-              event[field] = value;
+              event[field2] = value;
             }
             break;
           case "event":
             if (value.length > 0) {
-              event[field] = value;
+              event[field2] = value;
             }
             break;
         }
@@ -29337,8 +29337,8 @@ var init_Fields = __esm({
         fields.forEach(this.setField.bind(this));
         this.encoding = encoding;
       }
-      setField(field) {
-        this.entries[field.name.toLowerCase()] = field;
+      setField(field2) {
+        this.entries[field2.name.toLowerCase()] = field2;
       }
       getField(name) {
         return this.entries[name.toLowerCase()];
@@ -29347,7 +29347,7 @@ var init_Fields = __esm({
         delete this.entries[name.toLowerCase()];
       }
       getByType(kind) {
-        return Object.values(this.entries).filter((field) => field.kind === kind);
+        return Object.values(this.entries).filter((field2) => field2.kind === kind);
       }
     };
   }
@@ -39270,9 +39270,9 @@ var require_dist_cjs7 = __commonJS({
         }
         return this;
       }
-      cc(input, field, withName = field) {
-        if (input[field] != null) {
-          const node = _XmlNode.of(field, input[field]).withName(withName);
+      cc(input, field2, withName = field2) {
+        if (input[field2] != null) {
+          const node = _XmlNode.of(field2, input[field2]).withName(withName);
           this.c(node);
         }
       }
@@ -71033,7 +71033,7 @@ var require_form_data = __commonJS({
     util4.inherits(FormData3, CombinedStream);
     FormData3.LINE_BREAK = "\r\n";
     FormData3.DEFAULT_CONTENT_TYPE = "application/octet-stream";
-    FormData3.prototype.append = function(field, value, options) {
+    FormData3.prototype.append = function(field2, value, options) {
       options = options || {};
       if (typeof options === "string") {
         options = { filename: options };
@@ -71046,7 +71046,7 @@ var require_form_data = __commonJS({
         this._error(new Error("Arrays are not supported."));
         return;
       }
-      var header = this._multiPartHeader(field, value, options);
+      var header = this._multiPartHeader(field2, value, options);
       var footer = this._multiPartFooter();
       append2(header);
       append2(value);
@@ -71097,7 +71097,7 @@ var require_form_data = __commonJS({
         callback("Unknown stream");
       }
     };
-    FormData3.prototype._multiPartHeader = function(field, value, options) {
+    FormData3.prototype._multiPartHeader = function(field2, value, options) {
       if (typeof options.header === "string") {
         return options.header;
       }
@@ -71106,7 +71106,7 @@ var require_form_data = __commonJS({
       var contents = "";
       var headers = {
         // add custom disposition as third element or keep it two elements if not
-        "Content-Disposition": ["form-data", 'name="' + escapeHeaderParam(field) + '"'].concat(contentDisposition || []),
+        "Content-Disposition": ["form-data", 'name="' + escapeHeaderParam(field2) + '"'].concat(contentDisposition || []),
         // if no content type. allow it to be empty array
         "Content-Type": [].concat(contentType || [])
       };
@@ -78438,6 +78438,7 @@ async function getParameter(ssmClient, parameterName) {
   if (response.Parameter == void 0 || response.Parameter.Value == void 0) {
     throw new Error(`SSM parameter '${parameterName}' not found or has no value`);
   }
+  setSecret(response.Parameter.Value);
   return response.Parameter.Value;
 }
 async function loginToAws(roleArn, region, sessionName) {
@@ -84093,6 +84094,28 @@ var {
 } = axios_default;
 
 // src/slack.ts
+function field(label, value) {
+  return { type: "mrkdwn", text: `*${label}*
+${value}` };
+}
+function buildMessage(details, outcome) {
+  const fields = [
+    field("Repository", details.repository),
+    field("Branch", details.branch),
+    field("Message", details.commitMessage),
+    field("Commit SHA", `\`${details.commitSha}\``),
+    field("Workflow", details.workflowName),
+    field("Result", outcome.result),
+    ...outcome.extraFields
+  ];
+  return {
+    text: `${details.workflowName} ${outcome.summary} for ${details.repository} (${details.branch})`,
+    blocks: [
+      { type: "section", fields },
+      { type: "section", text: { type: "mrkdwn", text: `<${outcome.link.url}|${outcome.link.label}>` } }
+    ]
+  };
+}
 var SlackClient = class {
   axiosInstance;
   constructor(apiToken) {
@@ -84103,52 +84126,32 @@ var SlackClient = class {
       }
     });
   }
-  async sendFailureMessage(channelName, failedWorkflowRunDetails) {
-    const blocks = [
-      {
-        type: "section",
-        text: {
-          type: "mrkdwn",
-          text: `*Repository*:	   ${failedWorkflowRunDetails.repository}
-*Branch*:			  ${failedWorkflowRunDetails.branch}
-*Message*:		   ${failedWorkflowRunDetails.commitMessage}
-*Commit SHA*:   \`${failedWorkflowRunDetails.commitSha}\`
-*Workflow*:		 ${failedWorkflowRunDetails.workflowName}
-*Result*:			    FAILED :x:
-*Failed Job*:		 ${failedWorkflowRunDetails.failedJob}
-*Failed Step*:	   ${failedWorkflowRunDetails.failedStep}
-<${failedWorkflowRunDetails.failedStepUrl}|Failed Step URL>`
-        }
-      }
-    ];
-    return this.sendMessage(channelName, blocks);
+  async sendFailureMessage(channelName, details) {
+    const message = buildMessage(details, {
+      result: "FAILED :x:",
+      summary: `FAILED (${details.failedJob} / ${details.failedStep})`,
+      extraFields: [field("Failed Job", details.failedJob), field("Failed Step", details.failedStep)],
+      link: { url: details.failedStepUrl, label: "Failed Step URL" }
+    });
+    return this.sendMessage(channelName, message);
   }
-  async sendSuccessMessage(channelName, successfulWorkflowRunDetails) {
-    const blocks = [
-      {
-        type: "section",
-        text: {
-          type: "mrkdwn",
-          text: `*Repository*:	   ${successfulWorkflowRunDetails.repository}
-*Branch*:			  ${successfulWorkflowRunDetails.branch}
-*Message*:		   ${successfulWorkflowRunDetails.commitMessage}
-*Commit SHA*:   \`${successfulWorkflowRunDetails.commitSha}\`
-*Workflow*:		 ${successfulWorkflowRunDetails.workflowName}
-*Result*:				SUCCESS :white_check_mark:
-<${successfulWorkflowRunDetails.url}|Job URL>`
-        }
-      }
-    ];
-    return this.sendMessage(channelName, blocks);
+  async sendSuccessMessage(channelName, details) {
+    const message = buildMessage(details, {
+      result: "SUCCESS :white_check_mark:",
+      summary: "SUCCESS",
+      extraFields: [],
+      link: { url: details.url, label: "Job URL" }
+    });
+    return this.sendMessage(channelName, message);
   }
-  async sendMessage(channelName, blocks) {
+  async sendMessage(channelName, message) {
     const channel = await this.getChannelId(channelName);
     if (channel == void 0) {
       throw new Error(`Channel name: ${channelName} not found`);
     }
     const response = await this.axiosInstance.post(
       "/chat.postMessage",
-      { channel, blocks },
+      { channel, text: message.text, blocks: message.blocks },
       {
         headers: {
           "Content-Type": "application/json"
@@ -84166,9 +84169,9 @@ var SlackClient = class {
     if (currentPage > 50) {
       throw new Error("Maximum number of pages reached");
     }
-    const queryParams = { cursor: cursor2 };
-    const queryString = Object.keys(queryParams).filter((key) => queryParams[key] != void 0).map((key) => key + "=" + queryParams[key]).join("&");
-    const response = await this.axiosInstance.get("/conversations.list?" + queryString);
+    const response = await this.axiosInstance.get("/conversations.list", {
+      params: { limit: 1e3, exclude_archived: true, cursor: cursor2 }
+    });
     if (response.data.ok) {
       const channels = response.data.channels;
       const responseMetadata = response.data.response_metadata;
@@ -84193,6 +84196,12 @@ async function createSlackClient(ssmClient) {
 // src/github.ts
 var REPOSITORY_OWNER = "ruchira088";
 var FAILED_GITHUB_CONCLUSIONS = ["failure", "timed_out"];
+function isOwnedRepository(repositoryFullName) {
+  return repositoryFullName?.split("/")[0] === REPOSITORY_OWNER;
+}
+function hasFailed({ conclusion }) {
+  return conclusion != null && FAILED_GITHUB_CONCLUSIONS.includes(conclusion);
+}
 async function runNotificationWorkflow(ssmClient, githubWorkflowRun, slackChannel) {
   const githubToken = await getParameter(ssmClient, "/github/slack-github-action/read");
   const octokit = getOctokit(githubToken);
@@ -84202,7 +84211,7 @@ async function runNotificationWorkflow(ssmClient, githubWorkflowRun, slackChanne
     run_id: githubWorkflowRun.runId
   };
   const jobsForWorkflowRun = await octokit.rest.actions.listJobsForWorkflowRun(workflowRunParameters);
-  const failedJob = jobsForWorkflowRun.data.jobs.find((job) => job.conclusion != null && FAILED_GITHUB_CONCLUSIONS.includes(job.conclusion));
+  const failedJob = jobsForWorkflowRun.data.jobs.find(hasFailed);
   const workflowRun = await octokit.rest.actions.getWorkflowRun(workflowRunParameters);
   const workflowRunDetails = {
     repository: workflowRun.data.repository.full_name,
@@ -84214,12 +84223,11 @@ async function runNotificationWorkflow(ssmClient, githubWorkflowRun, slackChanne
   };
   const slackClient = await createSlackClient(ssmClient);
   if (failedJob != null) {
-    const failedStep = failedJob.steps?.find((step) => step.conclusion != null && FAILED_GITHUB_CONCLUSIONS.includes(step.conclusion))?.name ?? "Unknown step";
     const failedWorkflowRunDetails = {
       ...workflowRunDetails,
       failedJob: failedJob.name,
-      failedStep,
-      failedStepUrl: failedJob.html_url
+      failedStep: failedJob.steps?.find(hasFailed)?.name ?? "Unknown step",
+      failedStepUrl: failedJob.html_url ?? workflowRunDetails.url
     };
     await slackClient.sendFailureMessage(slackChannel, failedWorkflowRunDetails);
   } else {
@@ -84232,10 +84240,10 @@ async function runGitHubWorkflow() {
   const awsRoleArn = getInput("aws-role-arn");
   const awsRegion = getInput("aws-region");
   const slackChannel = getInput("slack-channel");
-  if (!context2.payload.repository?.full_name?.startsWith(REPOSITORY_OWNER)) {
+  const repositoryFullName = context2.payload.repository?.full_name;
+  if (!isOwnedRepository(repositoryFullName)) {
     throw new Error(
-      `Only repositories owned by ${REPOSITORY_OWNER} can use this GitHub Action.
-Payload: ${JSON.stringify(context2.payload, null, 2)}`
+      `Only repositories owned by ${REPOSITORY_OWNER} can use this GitHub Action (repository: ${repositoryFullName ?? "unknown"})`
     );
   }
   const awsSessionName = map3(context2.payload.repository?.name, (name) => `${name}-oidc`);
