@@ -64,11 +64,21 @@ jobs:
           echo "major_version=$MAJOR_VERSION" >> "$GITHUB_OUTPUT"
 
       - name: Create GitHub release
+        id: create-release
         env:
           GH_TOKEN: ${{ github.token }}
-        run: gh release create "v${{ steps.version.outputs.version }}" --generate-notes --latest
+          TAG: v${{ steps.version.outputs.version }}
+        run: |
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            echo "Release $TAG already exists; bump the version in package.json to publish a new release."
+            echo "created=false" >> "$GITHUB_OUTPUT"
+          else
+            gh release create "$TAG" --generate-notes --latest
+            echo "created=true" >> "$GITHUB_OUTPUT"
+          fi
 
       - name: Update major version tag
+        if: steps.create-release.outputs.created == 'true'
         env:
           GH_TOKEN: ${{ github.token }}
           MAJOR_TAG: v${{ steps.version.outputs.major_version }}
@@ -82,6 +92,7 @@ jobs:
           git push origin "$MAJOR_TAG"
 
       - name: Update major version release
+        if: steps.create-release.outputs.created == 'true'
         env:
           GH_TOKEN: ${{ github.token }}
           MAJOR_TAG: v${{ steps.version.outputs.major_version }}
