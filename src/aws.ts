@@ -11,6 +11,8 @@ export async function getParameter(ssmClient: SSMClient, parameterName: string):
     throw new Error(`SSM parameter '${parameterName}' not found or has no value`)
   }
 
+  core.setSecret(response.Parameter.Value)
+
   return response.Parameter.Value
 }
 

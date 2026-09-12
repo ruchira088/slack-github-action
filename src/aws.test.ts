@@ -1,4 +1,5 @@
 import { SSMClient, GetParameterCommand } from '@aws-sdk/client-ssm'
+import * as core from '@actions/core'
 import { getParameter } from './aws'
 
 jest.mock('@aws-sdk/client-ssm', () => {
@@ -78,6 +79,17 @@ describe('aws', () => {
       await expect(getParameter(mockSsmClient, '/empty')).rejects.toThrow(
         "SSM parameter '/empty' not found or has no value"
       )
+    })
+
+    it('should mask the retrieved value in the Actions log', async () => {
+      const mockSend = jest.fn().mockResolvedValue({
+        Parameter: { Value: 'xoxb-secret-token' }
+      })
+
+      const mockSsmClient = { send: mockSend } as unknown as SSMClient
+      await getParameter(mockSsmClient, '/github/slack/bot-token')
+
+      expect(core.setSecret).toHaveBeenCalledWith('xoxb-secret-token')
     })
 
     it('should request decryption for all parameters', async () => {
