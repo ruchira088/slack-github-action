@@ -29,7 +29,7 @@ async function runLocalWorkflow(isSuccess: boolean) {
   }
 
   const githubWorkflowRun: GithubWorkflowRun = {
-    runId: workflowResult.id,
+    runId: Number(workflowResult.id),
     owner: GITHUB_REPO_OWNER,
     repo: GITHUB_REPO_NAME
   }
